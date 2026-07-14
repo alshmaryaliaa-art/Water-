@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>منصة تقييم منظومات المياه | دائرة صحة البصرة</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --deep-teal:#0d4f4f;
+  --teal:#146b6b;
+  --aqua:#3fa9a5;
+  --aqua-light:#e6f4f3;
+  --sand:#faf8f3;
+  --ink:#1c2b2b;
+  --muted:#5c6f6f;
+  --line:#dbe6e4;
+  --ok:#2e8b57;
+  --warn:#c98a1e;
+  --crit:#b3452f;
+  --white:#ffffff;
+  --radius:10px;
+  --shadow:0 2px 10px rgba(13,79,79,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Segoe UI', Tahoma, Arial, sans-serif;
+  background:var(--sand);
+  color:var(--ink);
+  line-height:1.6;
+  min-height:100vh;
+}
+.hidden{display:none !important;}
+button{
+  font-family:inherit;
+  cursor:pointer;
+  border:none;
+  border-radius:8px;
+  font-size:15px;
+  transition:all .15s ease;
+}
+input,select,textarea{
+  font-family:inherit;
+  font-size:15px;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--white);
+  color:var(--ink);
+  width:100%;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none;
+  border-color:var(--aqua);
+  box-shadow:0 0 0 3px rgba(63,169,165,0.15);
+}
+textarea{resize:vertical;min-height:70px;}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px;}
+
+/* ===== شاشة الدخول ===== */
+#loginScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:linear-gradient(160deg, var(--deep-teal) 0%, var(--teal) 55%, var(--aqua) 100%);
+}
+.login-card{
+  background:var(--white);
+  border-radius:16px;
+  padding:40px 32px;
+  max-width:440px;
+  width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,0.25);
+}
+.login-header{text-align:center;margin-bottom:28px;}
+.droplet{
+  width:56px;height:56px;
+  margin:0 auto 14px;
+  border-radius:50% 50% 50% 0;
+  background:linear-gradient(135deg, var(--aqua), var(--teal));
+  transform:rotate(45deg);
+}
+.login-header h1{font-size:20px;color:var(--deep-teal);margin-bottom:6px;}
+.login-header p{font-size:13px;color:var(--muted);}
+.role-toggle{
+  display:flex;
+  gap:8px;
+  margin-bottom:22px;
+  background:var(--aqua-light);
+  padding:5px;
+  border-radius:10px;
+}
+.role-toggle button{
+  flex:1;
+  padding:10px;
+  background:transparent;
+  color:var(--teal);
+  font-weight:600;
+  border-radius:7px;
+}
+.role-toggle button.active{
+  background:var(--teal);
+  color:#fff;
+}
+.login-form .field{margin-bottom:14px;}
+.login-form .field.hidden{display:none;}
+.btn-primary{
+  width:100%;
+  padding:13px;
+  background:var(--teal);
+  color:#fff;
+  font-weight:700;
+  margin-top:6px;
+}
+.btn-primary:hover{background:var(--deep-teal);}
+.login-error{
+  color:var(--crit);
+  font-size:13px;
+  margin-top:10px;
+  text-align:center;
+  min-height:16px;
+}
+
+/* ===== شريط علوي عام ===== */
+.topbar{
+  background:var(--deep-teal);
+  color:#fff;
+  padding:14px 22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.topbar .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;}
+.topbar .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--aqua);}
+.topbar .who{font-size:13px;opacity:.85;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.btn-ghost{
+  background:rgba(255,255,255,0.12);
+  color:#fff;
+  padding:8px 14px;
+  font-size:13px;
+  border:1px solid rgba(255,255,255,0.25);
+}
+.btn-ghost:hover{background:rgba(255,255,255,0.22);}
+
+.app-wrap{max-width:1200px;margin:0 auto;padding:22px 16px 60px;}
+
+/* ===== نموذج المستشفى ===== */
+.hosp-header{
+  background:var(--white);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:18px 20px;
+  margin-bottom:18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.hosp-header h2{font-size:18px;color:var(--deep-teal);}
+.hosp-header .updated{font-size:12px;color:var(--muted);}
+.save-status{font-size:13px;font-weight:600;}
+.save-status.ok{color:var(--ok);}
+.save-status.err{color:var(--crit);}
+
+.section-card{
+  background:var(--white);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  margin-bottom:18px;
+  overflow:hidden;
+}
+.section-title{
+  background:var(--aqua-light);
+  padding:14px 20px;
+  font-weight:700;
+  color:var(--deep-teal);
+  font-size:15px;
+  border-right:4px solid var(--aqua);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.section-body{padding:20px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media(max-width:700px){.grid2,.grid3{grid-template-columns:1fr;}}
+.subgroup{
+  border:1px dashed var(--line);
+  border-radius:8px;
+  padding:14px;
+  margin-top:8px;
+}
+.subgroup-label{font-size:12px;font-weight:700;color:var(--teal);margin-bottom:10px;}
+.chip-row{display:flex;gap:10px;flex-wrap:wrap;}
+.chip-field{flex:1;min-width:140px;}
+
+.btn-save{
+  background:var(--teal);color:#fff;padding:13px 26px;font-weight:700;font-size:15px;
+}
+.btn-save:hover{background:var(--deep-teal);}
+.form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px;padding:0 4px;}
+
+/* ===== مرفقات ===== */
+.attach-list{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+.attach-chip{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:var(--aqua-light);border-radius:6px;padding:6px 10px;font-size:12.5px;
+}
+.attach-chip a{color:var(--teal);text-decoration:none;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;}
+.attach-chip .rm{background:none;color:var(--crit);font-weight:700;font-size:13px;padding:0 4px;}
+.upload-hint{font-size:12px;color:var(--muted);margin-top:10px;}
+
+
+/* ===== لوحة المدير ===== */
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+@media(max-width:900px){.dash-grid{grid-template-columns:repeat(2,1fr);}}
+.stat-card{
+  background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:18px;text-align:center;
+}
+.stat-card .num{font-size:28px;font-weight:800;color:var(--deep-teal);}
+.stat-card.crit .num{color:var(--crit);}
+.stat-card.warn .num{color:var(--warn);}
+.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:4px;}
+
+.charts-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:20px;}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr;}}
+.chart-box{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;}
+.chart-box h3{font-size:14px;color:var(--deep-teal);margin-bottom:10px;}
+.chart-box canvas{max-height:280px;}
+
+.alerts-panel{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;}
+.alerts-panel h3{padding:14px 18px;background:var(--aqua-light);color:var(--deep-teal);font-size:15px;}
+.alert-item{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:12px 18px;border-bottom:1px solid var(--line);font-size:13.5px;
+}
+.alert-item:last-child{border-bottom:none;}
+.alert-badge{
+  flex-shrink:0;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;
+}
+.alert-badge.crit{background:var(--crit);}
+.alert-badge.warn{background:var(--warn);}
+.alert-empty{padding:20px;text-align:center;color:var(--muted);font-size:13px;}
+
+.table-panel{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px;}
+.table-panel h3{padding:14px 18px;background:var(--aqua-light);color:var(--deep-teal);font-size:15px;}
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+th,td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--line);}
+th{background:#f4f9f8;color:var(--muted);font-weight:700;font-size:12px;}
+tr:hover td{background:#f9fcfb;}
+.status-pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;display:inline-block;}
+.status-pill.ok{background:var(--ok);}
+.status-pill.warn{background:var(--warn);}
+.status-pill.crit{background:var(--crit);}
+.link-btn{background:none;color:var(--teal);font-weight:700;font-size:12.5px;text-decoration:underline;padding:0;}
+
+/* ===== تفاصيل مستشفى (مدير) ===== */
+.detail-overlay{
+  position:fixed;inset:0;background:rgba(13,25,25,0.55);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:30px 16px;overflow-y:auto;z-index:100;
+}
+.detail-modal{
+  background:var(--white);border-radius:14px;max-width:900px;width:100%;
+  padding:0;overflow:hidden;
+}
+.detail-modal-head{
+  padding:18px 22px;background:var(--deep-teal);color:#fff;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.detail-modal-body{padding:22px;max-height:75vh;overflow-y:auto;}
+.close-x{background:none;color:#fff;font-size:20px;padding:2px 10px;}
+
+.data-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+.data-row .k{color:var(--muted);}
+.data-row .v{font-weight:600;}
+
+@media print{
+  .topbar, .btn-ghost, .no-print{display:none !important;}
+  body{background:#fff;}
+  .section-card,.stat-card,.chart-box,.alerts-panel,.table-panel{box-shadow:none;border:1px solid #ccc;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ شاشة تسجيل الدخول ============ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="droplet"></div>
+      <h1>منصة تقييم منظومات المياه</h1>
+      <p>دائرة صحة البصرة — شعبة تقويم الأداء</p>
+    </div>
+    <div class="role-toggle">
+      <button id="tabHospital" class="active" onclick="switchLoginTab('hospital')">دخول مستشفى</button>
+      <button id="tabAdmin" onclick="switchLoginTab('admin')">دخول الإدارة العامة</button>
+    </div>
+    <div class="login-form">
+      <div class="field" id="fieldHospitalSelect">
+        <label>اسم المستشفى</label>
+        <select id="hospitalSelect"></select>
+      </div>
+      <div class="field">
+        <label id="passLabel">كلمة المرور</label>
+        <input type="password" id="passwordInput" placeholder="أدخلي كلمة المرور">
+      </div>
+      <button class="btn-primary" onclick="attemptLogin()">دخول</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ واجهة المستشفى ============ -->
+<div id="hospitalApp" class="hidden">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> منصة تقييم منظومات المياه</div>
+    <div class="who" id="hospWho"></div>
+    <div class="topbar-actions">
+      <button class="btn-ghost" onclick="logout()">تسجيل خروج</button>
+    </div>
+  </div>
+  <div class="app-wrap">
+    <div class="hosp-header">
+      <h2 id="hospTitle">—</h2>
+      <div class="updated" id="hospUpdated">لا توجد بيانات محفوظة بعد</div>
+    </div>
+
+    <form id="hospForm" onsubmit="return false;">
+      <!-- أولاً: منظومة ماء الإسالة -->
+      <div class="section-card">
+        <div class="section-title">💧 أولاً: منظومة ماء الإسالة</div>
+        <div class="section-body">
+          <div class="grid2">
+            <div><label>مصدر تجهيز الماء</label><input id="tw_source" placeholder="مثال: مشروع إسالة عام + آبار احتياط"></div>
+            <div><label>معدل ساعات التجهيز اليومي (ساعة)</label><input id="tw_dailyHours" type="number" min="0" max="24"></div>
+          </div>
+          <div class="grid2" style="margin-top:14px;">
+            <div><label>عدد الخزانات وسعتها</label><input id="tw_tanks" placeholder="مثال: 4 خزانات × 20 م³"></div>
+            <div><label>تاريخ آخر تنظيف وتعقيم للخزانات</label><input id="tw_lastCleaning" type="date"></div>
+          </div>
+
+          <div class="subgroup">
+            <div class="subgroup-label">نتائج فحص مياه الإسالة</div>
+            <div class="chip-row">
+              <div class="chip-field"><label>الفحص البكتيري</label>
+                <select id="tw_bact"><option value="سليم">سليم</option><option value="ملوث">ملوث</option></select>
+              </div>
+              <div class="chip-field"><label>الفحص الكيميائي</label>
+                <select id="tw_chem"><option value="مطابق">مطابق</option><option value="غير مطابق">غير مطابق</option></select>
+              </div>
+              <div class="chip-field"><label>TDS (جزء بالمليون)</label>
+                <input id="tw_tds" type="number" min="0" placeholder="مثال: 450">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top:14px;">
+            <div><label>حالة الشبكة الداخلية</label>
+              <select id="tw_network"><option value="جيدة">جيدة</option><option value="متوسطة">متوسطة</option><option value="متهالكة">متهالكة</option></select>
+            </div>
+            <div><label>أهم المعوقات</label><textarea id="tw_obstacles" placeholder="اذكري أهم المعوقات..."></textarea></div>
+          </div>
+
+          <div class="grid2" style="margin-top:14px;">
+            <div class="subgroup">
+              <div class="subgroup-label">الاحتياجات المطلوبة</div>
+              <label>عاجلة</label><textarea id="tw_needUrgent"></textarea>
+              <label style="margin-top:8px;">ضمن الخطة السنوية</label><textarea id="tw_needPlan"></textarea>
+            </div>
+            <div class="subgroup">
+              <div class="subgroup-label">الاحتياجات المالية</div>
+              <label>عاجلة</label><textarea id="tw_finUrgent"></textarea>
+              <label style="margin-top:8px;">ضمن الخطة السنوية</label><textarea id="tw_finPlan"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ثانياً: منظومات RO -->
+      <div class="section-card">
+        <div class="section-title">⚙️ ثانياً: منظومات RO</div>
+        <div class="section-body">
+          <div class="grid3">
+            <div><label>عدد منظومات RO</label><input id="ro_count" type="number" min="0"></div>
+            <div><label>سنة التصنيع</label><input id="ro_year" type="number" min="1990" max="2030"></div>
+            <div><label>الطاقة الإنتاجية</label><input id="ro_capacity" placeholder="م³/يوم"></div>
+          </div>
+          <div class="grid3" style="margin-top:14px;">
+            <div><label>الشركة المصنعة</label><input id="ro_maker"></div>
+            <div><label>عدد المنظومات المتوقفة</label><input id="ro_stopped" type="number" min="0"></div>
+            <div></div>
+          </div>
+
+          <div class="grid2" style="margin-top:14px;">
+            <div><label>عدد صالات العمليات</label><input id="ro_orCount" type="number" min="0"></div>
+            <div><label>عدد صالات العمليات المخدومة</label><input id="ro_orServed" type="number" min="0"></div>
+          </div>
+
+          <div class="grid3" style="margin-top:14px;">
+            <div><label>تاريخ آخر صيانة</label><input id="ro_lastMaint" type="date"></div>
+            <div><label>تاريخ آخر تبديل للفلاتر</label><input id="ro_lastFilter" type="date"></div>
+            <div><label>تاريخ آخر تبديل للأغشية</label><input id="ro_lastMembrane" type="date"></div>
+          </div>
+
+          <div class="subgroup">
+            <div class="subgroup-label">نتائج فحص جودة المياه</div>
+            <div class="chip-row">
+              <div class="chip-field"><label>الفحص البكتيري</label>
+                <select id="ro_bact"><option value="سليم">سليم</option><option value="ملوث">ملوث</option></select>
+              </div>
+              <div class="chip-field"><label>الفحص الكيميائي</label>
+                <select id="ro_chem"><option value="مطابق">مطابق</option><option value="غير مطابق">غير مطابق</option></select>
+              </div>
+              <div class="chip-field"><label>TDS (جزء بالمليون)</label>
+                <input id="ro_tds" type="number" min="0" placeholder="مثال: 20">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top:14px;">
+            <div><label>كفاءة المنظومة</label>
+              <select id="ro_efficiency"><option value="ممتازة">ممتازة</option><option value="جيدة">جيدة</option><option value="ضعيفة">ضعيفة</option></select>
+            </div>
+            <div><label>الأعطال الحالية</label><textarea id="ro_faults"></textarea></div>
+          </div>
+
+          <div class="grid2" style="margin-top:14px;">
+            <div class="subgroup">
+              <div class="subgroup-label">الاحتياجات الفنية</div>
+              <label>عاجلة</label><textarea id="ro_techUrgent"></textarea>
+              <label style="margin-top:8px;">ضمن الخطة السنوية</label><textarea id="ro_techPlan"></textarea>
+            </div>
+            <div class="subgroup">
+              <div class="subgroup-label">الاحتياجات المالية</div>
+              <label>عاجلة</label><textarea id="ro_finUrgent"></textarea>
+              <label style="margin-top:8px;">ضمن الخطة السنوية</label><textarea id="ro_finPlan"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ثالثاً: المرفقات -->
+      <div class="section-card">
+        <div class="section-title">📎 ثالثاً: صور وتقارير فنية</div>
+        <div class="section-body">
+          <div class="grid2">
+            <div>
+              <label>صور حديثة لمنظومة الإسالة والخزانات</label>
+              <input type="file" id="file_tankPhotos" multiple accept="image/*">
+              <div class="attach-list" id="list_tankPhotos"></div>
+            </div>
+            <div>
+              <label>صور حديثة لمنظومات RO</label>
+              <input type="file" id="file_roPhotos" multiple accept="image/*">
+              <div class="attach-list" id="list_roPhotos"></div>
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:14px;">
+            <div>
+              <label>تقارير الصيانة الفنية (PDF / صورة / Word)</label>
+              <input type="file" id="file_maintReports" multiple accept=".pdf,.doc,.docx,image/*">
+              <div class="attach-list" id="list_maintReports"></div>
+            </div>
+            <div>
+              <label>التقارير المختبرية (PDF / صورة / Word)</label>
+              <input type="file" id="file_labReports" multiple accept=".pdf,.doc,.docx,image/*">
+              <div class="attach-list" id="list_labReports"></div>
+            </div>
+          </div>
+          <div class="upload-hint" id="uploadHint"></div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <span class="save-status" id="saveStatus"></span>
+        <button class="btn-save" onclick="saveHospitalData()">حفظ البيانات ورفع المرفقات</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ لوحة تحكم الإدارة العامة ============ -->
+<div id="adminApp" class="hidden">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> منصة تقييم منظومات المياه — الإدارة العامة</div>
+    <div class="who">لوحة المتابعة والإشراف</div>
+    <div class="topbar-actions">
+      <button class="btn-ghost" onclick="window.print()">طباعة التقرير</button>
+      <button class="btn-ghost" onclick="logout()">تسجيل خروج</button>
+    </div>
+  </div>
+  <div class="app-wrap">
+    <div class="dash-grid" id="statCards"></div>
+
+    <div class="charts-grid">
+      <div class="chart-box">
+        <h3>TDS لكل مستشفى — ماء الإسالة مقابل RO</h3>
+        <canvas id="tdsChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>توزيع حالة الفحص البكتيري</h3>
+        <canvas id="bactChart"></canvas>
+      </div>
+    </div>
+
+    <div class="alerts-panel">
+      <h3>⚠️ التنبيهات النشطة</h3>
+      <div id="alertsList"></div>
+    </div>
+
+    <div class="table-panel">
+      <h3>حالة المستشفيات (16)</h3>
+      <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>
+          <th>المستشفى</th><th>TDS إسالة</th><th>TDS RO</th><th>RO متوقفة</th><th>آخر تحديث</th><th>الحالة</th><th></th>
+        </tr></thead>
+        <tbody id="hospTableBody"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="detailOverlay" class="detail-overlay hidden no-print" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-modal">
+    <div class="detail-modal-head">
+      <strong id="detailTitle"></strong>
+      <button class="close-x" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="detail-modal-body" id="detailBody"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   منصة تقييم منظومات المياه — دائرة صحة البصرة
+   ========================================================= */
+
+/* ---------- 1) إعداد Firebase ----------
+   ضعي هنا بيانات مشروعك من Firebase Console > Project settings > General > Your apps
+   إذا تركتِها كما هي، ستعمل المنصة محلياً فقط بدون مزامنة بين الأجهزة. */
+const firebaseConfig = {
+  apiKey: "ضعي_apiKey_هنا",
+  authDomain: "ضعي_authDomain_هنا",
+  databaseURL: "ضعي_databaseURL_هنا",
+  projectId: "ضعي_projectId_هنا",
+  storageBucket: "ضعي_storageBucket_هنا",
+  messagingSenderId: "ضعي_messagingSenderId_هنا",
+  appId: "ضعي_appId_هنا"
+};
+
+let db = null;
+let storage = null;
+let firebaseReady = false;
+try {
+  if (!firebaseConfig.apiKey.startsWith("ضعي")) {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    storage = firebase.storage();
+    firebaseReady = true;
+  }
+} catch (e) {
+  console.warn("Firebase غير مهيأ:", e);
+}
+
+/* ---------- 2) كلمات المرور (يمكن تغييرها) ---------- */
+const ADMIN_PASSWORD = "998877";
+// كلمة مرور خاصة بكل مستشفى (بنفس ترتيب قائمة HOSPITALS أدناه)
+const HOSPITAL_PASSWORDS = {
+  "م. البصرة التعليمي": "1001",
+  "م. العراقي الكويتي": "1002",
+  "م. السياب التعليمي": "1003",
+  "م. الموانئ التعليمي": "1004",
+  "م. البصرة التخصصي للاطفال": "1005",
+  "م. البصرة للنسائية والاطفال": "1006",
+  "م. الفيحاء التعليمي": "1007",
+  "م. القلب": "1008",
+  "م. الجهاز الهضمي": "1009",
+  "م. الشفاء العام": "1010",
+  "م. الزبير العام": "1011",
+  "م. ام قصر العام": "1012",
+  "م. الفاو العام": "1013",
+  "م. ابي الخصيب العام": "1014",
+  "م. القرنة العام": "1015",
+  "م. المدينة العام": "1016"
+};
+
+/* ---------- 3) قائمة المستشفيات (16) ---------- */
+const HOSPITALS = [
+  "م. البصرة التعليمي",
+  "م. العراقي الكويتي",
+  "م. السياب التعليمي",
+  "م. الموانئ التعليمي",
+  "م. البصرة التخصصي للاطفال",
+  "م. البصرة للنسائية والاطفال",
+  "م. الفيحاء التعليمي",
+  "م. القلب",
+  "م. الجهاز الهضمي",
+  "م. الشفاء العام",
+  "م. الزبير العام",
+  "م. ام قصر العام",
+  "م. الفاو العام",
+  "م. ابي الخصيب العام",
+  "م. القرنة العام",
+  "م. المدينة العام"
+];
+
+function hospKey(name) {
+  return "h" + HOSPITALS.indexOf(name);
+}
+
+/* ---------- 4) حالة محلية (تُستخدم كنسخة احتياطية بدون Firebase) ---------- */
+const LOCAL_STORE_KEY = "waterPlatformLocalData";
+let localData = {};
+function loadLocalData() {
+  try {
+    const raw = window.name && window.name.startsWith("WPD::") ? window.name.slice(5) : null;
+    localData = raw ? JSON.parse(raw) : {};
+  } catch (e) { localData = {}; }
+}
+function persistLocalData() {
+  try { window.name = "WPD::" + JSON.stringify(localData); } catch (e) {}
+}
+loadLocalData();
+
+/* ---------- 5) تسجيل الدخول ---------- */
+let currentRole = null;   // 'hospital' | 'admin'
+let currentHospital = null;
+let loginTab = "hospital";
+
+function populateHospitalSelect() {
+  const sel = document.getElementById("hospitalSelect");
+  sel.innerHTML = HOSPITALS.map(h => `<option value="${h}">${h}</option>`).join("");
+}
+populateHospitalSelect();
+
+function switchLoginTab(tab) {
+  loginTab = tab;
+  document.getElementById("tabHospital").classList.toggle("active", tab === "hospital");
+  document.getElementById("tabAdmin").classList.toggle("active", tab === "admin");
+  document.getElementById("fieldHospitalSelect").classList.toggle("hidden", tab !== "hospital");
+  document.getElementById("passLabel").textContent = tab === "hospital" ? "الرقم السري الخاص بمستشفاك" : "كلمة مرور الإدارة العامة";
+  document.getElementById("loginError").textContent = "";
+}
+
+function attemptLogin() {
+  const pass = document.getElementById("passwordInput").value;
+  const errEl = document.getElementById("loginError");
+  if (loginTab === "hospital") {
+    const selectedHospital = document.getElementById("hospitalSelect").value;
+    if (pass !== HOSPITAL_PASSWORDS[selectedHospital]) { errEl.textContent = "كلمة المرور غير صحيحة لهذا المستشفى"; return; }
+    currentRole = "hospital";
+    currentHospital = selectedHospital;
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("hospitalApp").classList.remove("hidden");
+    document.getElementById("hospTitle").textContent = currentHospital;
+    document.getElementById("hospWho").textContent = currentHospital;
+    loadHospitalForm(currentHospital);
+  } else {
+    if (pass !== ADMIN_PASSWORD) { errEl.textContent = "كلمة المرور غير صحيحة"; return; }
+    currentRole = "admin";
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("adminApp").classList.remove("hidden");
+    loadAdminDashboard();
+  }
+}
+
+function logout() {
+  currentRole = null;
+  currentHospital = null;
+  document.getElementById("passwordInput").value = "";
+  document.getElementById("loginError").textContent = "";
+  document.getElementById("hospitalApp").classList.add("hidden");
+  document.getElementById("adminApp").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+}
+
+/* ---------- 6) قراءة/كتابة بيانات مستشفى واحد ---------- */
+function getHospitalRecord(name, cb) {
+  const key = hospKey(name);
+  if (firebaseReady) {
+    db.ref("records/" + key).once("value").then(snap => cb(snap.val() || null));
+  } else {
+    cb(localData[key] || null);
+  }
+}
+
+function setHospitalRecord(name, record, cb) {
+  const key = hospKey(name);
+  record.meta = { updatedAt: new Date().toISOString() };
+  if (firebaseReady) {
+    db.ref("records/" + key).set(record).then(() => cb(true)).catch(() => cb(false));
+  } else {
+    localData[key] = record;
+    persistLocalData();
+    cb(true);
+  }
+}
+
+function getAllRecords(cb) {
+  if (firebaseReady) {
+    db.ref("records").once("value").then(snap => cb(snap.val() || {}));
+  } else {
+    cb(localData);
+  }
+}
+
+/* ---------- 7) نموذج المستشفى: تحميل وحفظ ---------- */
+const TW_FIELDS = ["source","dailyHours","tanks","lastCleaning","bact","chem","tds","network","obstacles","needUrgent","needPlan","finUrgent","finPlan"];
+const RO_FIELDS = ["count","year","capacity","maker","stopped","orCount","orServed","lastMaint","lastFilter","lastMembrane","bact","chem","tds","efficiency","faults","techUrgent","techPlan","finUrgent","finPlan"];
+const ATTACH_CATEGORIES = ["tankPhotos","roPhotos","maintReports","labReports"];
+let currentAttachments = { tankPhotos: [], roPhotos: [], maintReports: [], labReports: [] };
+
+function loadHospitalForm(name) {
+  document.getElementById("saveStatus").textContent = "";
+  getHospitalRecord(name, (rec) => {
+    const tw = (rec && rec.tapWater) || {};
+    const ro = (rec && rec.ro) || {};
+    TW_FIELDS.forEach(f => { const el = document.getElementById("tw_" + f); if (el) el.value = tw[f] ?? ""; });
+    RO_FIELDS.forEach(f => { const el = document.getElementById("ro_" + f); if (el) el.value = ro[f] ?? ""; });
+    currentAttachments = (rec && rec.attachments) || { tankPhotos: [], roPhotos: [], maintReports: [], labReports: [] };
+    ATTACH_CATEGORIES.forEach(cat => { if (!currentAttachments[cat]) currentAttachments[cat] = []; });
+    renderAllAttachments();
+    ["file_tankPhotos","file_roPhotos","file_maintReports","file_labReports"].forEach(id => { document.getElementById(id).value = ""; });
+    document.getElementById("uploadHint").textContent = storage ? "" : "⚠ لم يتم إعداد Firebase Storage بعد، لن يتم حفظ الملفات المرفوعة.";
+    const upd = document.getElementById("hospUpdated");
+    if (rec && rec.meta && rec.meta.updatedAt) {
+      upd.textContent = "آخر تحديث: " + formatDate(rec.meta.updatedAt);
+    } else {
+      upd.textContent = "لا توجد بيانات محفوظة بعد";
+    }
+  });
+}
+
+function renderAllAttachments() {
+  ATTACH_CATEGORIES.forEach(cat => renderAttachmentList(cat));
+}
+
+function renderAttachmentList(cat) {
+  const el = document.getElementById("list_" + cat);
+  const items = currentAttachments[cat] || [];
+  if (items.length === 0) { el.innerHTML = ""; return; }
+  el.innerHTML = items.map((it, idx) => `
+    <div class="attach-chip">
+      <a href="${it.url}" target="_blank" rel="noopener">📄 ${it.name}</a>
+      <button type="button" class="rm" onclick="removeAttachment('${cat}', ${idx})">✕</button>
+    </div>
+  `).join("");
+}
+
+function removeAttachment(cat, idx) {
+  const item = currentAttachments[cat][idx];
+  currentAttachments[cat].splice(idx, 1);
+  renderAttachmentList(cat);
+  if (storage && item && item.path) {
+    storage.ref(item.path).delete().catch(() => {});
+  }
+}
+
+function uploadCategoryFiles(cat) {
+  const input = document.getElementById("file_" + cat);
+  const files = Array.from(input.files || []);
+  if (files.length === 0 || !storage) return Promise.resolve([]);
+  const key = hospKey(currentHospital);
+  const uploads = files.map(file => {
+    const path = `attachments/${key}/${cat}/${Date.now()}_${file.name}`;
+    const ref = storage.ref(path);
+    return ref.put(file).then(() => ref.getDownloadURL()).then(url => ({ name: file.name, url, path }));
+  });
+  return Promise.all(uploads);
+}
+
+function saveHospitalData() {
+  const tw = {}; TW_FIELDS.forEach(f => { tw[f] = document.getElementById("tw_" + f).value; });
+  const ro = {}; RO_FIELDS.forEach(f => { ro[f] = document.getElementById("ro_" + f).value; });
+  const statusEl = document.getElementById("saveStatus");
+  statusEl.textContent = "جارٍ رفع المرفقات وحفظ البيانات...";
+  statusEl.className = "save-status";
+
+  Promise.all(ATTACH_CATEGORIES.map(cat => uploadCategoryFiles(cat)))
+    .then((results) => {
+      ATTACH_CATEGORIES.forEach((cat, i) => {
+        currentAttachments[cat] = (currentAttachments[cat] || []).concat(results[i]);
+      });
+      renderAllAttachments();
+      ["file_tankPhotos","file_roPhotos","file_maintReports","file_labReports"].forEach(id => { document.getElementById(id).value = ""; });
+
+      const record = { tapWater: tw, ro: ro, attachments: currentAttachments };
+      setHospitalRecord(currentHospital, record, (ok) => {
+        if (ok) {
+          statusEl.textContent = "✔ تم الحفظ بنجاح";
+          statusEl.className = "save-status ok";
+          document.getElementById("hospUpdated").textContent = "آخر تحديث: " + formatDate(new Date().toISOString());
+        } else {
+          statusEl.textContent = "✘ فشل الحفظ، حاولي مجدداً";
+          statusEl.className = "save-status err";
+        }
+      });
+    })
+    .catch((e) => {
+      console.error(e);
+      statusEl.textContent = "✘ فشل رفع أحد المرفقات، حاولي مجدداً";
+      statusEl.className = "save-status err";
+    });
+}
+
+function formatDate(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("ar-IQ", { year: "numeric", month: "long", day: "numeric" }) +
+      " - " + d.toLocaleTimeString("ar-IQ", { hour: "2-digit", minute: "2-digit" });
+  } catch (e) { return iso; }
+}
+
+/* ---------- 8) عتبات التنبيهات ---------- */
+const THRESH = {
+  TW_TDS_MAX: 1000,        // الحد الأعلى المقبول لـ TDS بمياه الإسالة (ppm)
+  RO_TDS_MAX: 100,         // الحد الأعلى المقبول لـ TDS بمخرج RO (ppm)
+  TANK_CLEAN_MONTHS: 6,    // الحد الأقصى لعمر آخر تنظيف خزانات
+  RO_MAINT_MONTHS: 3,      // الحد الأقصى لعمر آخر صيانة RO
+  MIN_DAILY_HOURS: 12      // الحد الأدنى لساعات تجهيز الماء يومياً
+};
+
+function monthsSince(dateStr) {
+  if (!dateStr) return null;
+  const then = new Date(dateStr);
+  if (isNaN(then)) return null;
+  const now = new Date();
+  return (now - then) / (1000 * 60 * 60 * 24 * 30.4);
+}
+
+/* يحسب قائمة التنبيهات لسجل مستشفى واحد */
+function computeAlerts(hospName, rec) {
+  const alerts = [];
+  if (!rec) return alerts;
+  const tw = rec.tapWater || {};
+  const ro = rec.ro || {};
+
+  if (tw.bact === "ملوث") alerts.push({ level: "crit", hosp: hospName, msg: "تلوث بكتيري في مياه الإسالة" });
+  if (tw.chem === "غير مطابق") alerts.push({ level: "crit", hosp: hospName, msg: "نتيجة فحص كيميائي غير مطابقة لمياه الإسالة" });
+  if (tw.tds && Number(tw.tds) > THRESH.TW_TDS_MAX) alerts.push({ level: "warn", hosp: hospName, msg: `ارتفاع TDS بمياه الإسالة (${tw.tds} ppm)` });
+  if (tw.dailyHours && Number(tw.dailyHours) < THRESH.MIN_DAILY_HOURS) alerts.push({ level: "warn", hosp: hospName, msg: `انخفاض ساعات تجهيز الماء اليومية (${tw.dailyHours} ساعة)` });
+  const twClean = monthsSince(tw.lastCleaning);
+  if (twClean !== null && twClean > THRESH.TANK_CLEAN_MONTHS) alerts.push({ level: "warn", hosp: hospName, msg: "تأخر تنظيف وتعقيم الخزانات عن الموعد" });
+  if (tw.network === "متهالكة") alerts.push({ level: "warn", hosp: hospName, msg: "الشبكة الداخلية بحالة متهالكة" });
+
+  if (ro.bact === "ملوث") alerts.push({ level: "crit", hosp: hospName, msg: "تلوث بكتيري في مخرج منظومات RO" });
+  if (ro.chem === "غير مطابق") alerts.push({ level: "crit", hosp: hospName, msg: "نتيجة فحص كيميائي غير مطابقة لمخرج RO" });
+  if (ro.tds && Number(ro.tds) > THRESH.RO_TDS_MAX) alerts.push({ level: "warn", hosp: hospName, msg: `ارتفاع TDS بمخرج RO (${ro.tds} ppm)` });
+  if (ro.stopped && Number(ro.stopped) > 0) alerts.push({ level: "crit", hosp: hospName, msg: `${ro.stopped} منظومة RO متوقفة عن العمل` });
+  if (ro.orCount && ro.orServed && Number(ro.orServed) < Number(ro.orCount)) alerts.push({ level: "crit", hosp: hospName, msg: `صالات عمليات غير مخدومة بالكامل (${ro.orServed}/${ro.orCount})` });
+  const roMaint = monthsSince(ro.lastMaint);
+  if (roMaint !== null && roMaint > THRESH.RO_MAINT_MONTHS) alerts.push({ level: "warn", hosp: hospName, msg: "تأخرت صيانة منظومات RO عن الموعد" });
+  if (ro.efficiency === "ضعيفة") alerts.push({ level: "warn", hosp: hospName, msg: "كفاءة منظومة RO ضعيفة" });
+  if (ro.faults && ro.faults.trim() !== "") alerts.push({ level: "warn", hosp: hospName, msg: "توجد أعطال حالية مسجلة" });
+
+  return alerts;
+}
+
+function hospitalStatus(alerts) {
+  if (alerts.some(a => a.level === "crit")) return "crit";
+  if (alerts.some(a => a.level === "warn")) return "warn";
+  return "ok";
+}
+
+/* ---------- 9) لوحة تحكم الإدارة العامة ---------- */
+let tdsChartInstance = null, bactChartInstance = null;
+
+function loadAdminDashboard() {
+  getAllRecords((all) => {
+    const rows = HOSPITALS.map((name, i) => {
+      const key = "h" + i;
+      const rec = all[key] || null;
+      const alerts = computeAlerts(name, rec);
+      return { name, key, rec, alerts, status: hospitalStatus(alerts) };
+    });
+
+    renderStatCards(rows);
+    renderAlerts(rows);
+    renderTable(rows);
+    renderCharts(rows);
+  });
+}
+
+function renderStatCards(rows) {
+  const registered = rows.filter(r => r.rec).length;
+  const critCount = rows.filter(r => r.status === "crit").length;
+  const warnCount = rows.filter(r => r.status === "warn").length;
+  const stoppedRO = rows.reduce((s, r) => s + (r.rec && r.rec.ro && Number(r.rec.ro.stopped) || 0), 0);
+
+  document.getElementById("statCards").innerHTML = `
+    <div class="stat-card"><div class="num">${registered}/16</div><div class="lbl">مستشفيات أدخلت بياناتها</div></div>
+    <div class="stat-card crit"><div class="num">${critCount}</div><div class="lbl">مستشفيات بحالة حرجة</div></div>
+    <div class="stat-card warn"><div class="num">${warnCount}</div><div class="lbl">مستشفيات بحاجة متابعة</div></div>
+    <div class="stat-card"><div class="num">${stoppedRO}</div><div class="lbl">منظومة RO متوقفة إجمالاً</div></div>
+  `;
+}
+
+function renderAlerts(rows) {
+  const all = rows.flatMap(r => r.alerts).sort((a, b) => (a.level === "crit" ? -1 : 1) - (b.level === "crit" ? -1 : 1));
+  const el = document.getElementById("alertsList");
+  if (all.length === 0) { el.innerHTML = `<div class="alert-empty">لا توجد تنبيهات نشطة حالياً 👍</div>`; return; }
+  el.innerHTML = all.map(a => `
+    <div class="alert-item">
+      <span class="alert-badge ${a.level}">${a.level === "crit" ? "حرج" : "تنبيه"}</span>
+      <span><strong>${a.hosp}:</strong> ${a.msg}</span>
+    </div>
+  `).join("");
+}
+
+function renderTable(rows) {
+  const body = document.getElementById("hospTableBody");
+  body.innerHTML = rows.map(r => {
+    const tw = r.rec && r.rec.tapWater || {};
+    const ro = r.rec && r.rec.ro || {};
+    const upd = r.rec && r.rec.meta && r.rec.meta.updatedAt ? formatDate(r.rec.meta.updatedAt) : "—";
+    const pillText = r.status === "crit" ? "حرجة" : r.status === "warn" ? "تحتاج متابعة" : (r.rec ? "جيدة" : "لا بيانات");
+    const pillClass = r.rec ? r.status : "warn";
+    return `
+      <tr>
+        <td>${r.name}</td>
+        <td>${tw.tds || "—"}</td>
+        <td>${ro.tds || "—"}</td>
+        <td>${ro.stopped || 0}</td>
+        <td>${upd}</td>
+        <td><span class="status-pill ${pillClass}">${pillText}</span></td>
+        <td><button class="link-btn" onclick="openDetail('${r.key}')">التفاصيل</button></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderCharts(rows) {
+  const labels = rows.map(r => r.name);
+  const twTds = rows.map(r => (r.rec && r.rec.tapWater && Number(r.rec.tapWater.tds)) || 0);
+  const roTds = rows.map(r => (r.rec && r.rec.ro && Number(r.rec.ro.tds)) || 0);
+
+  const ctx1 = document.getElementById("tdsChart").getContext("2d");
+  if (tdsChartInstance) tdsChartInstance.destroy();
+  tdsChartInstance = new Chart(ctx1, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "TDS إسالة", data: twTds, backgroundColor: "#3fa9a5" },
+        { label: "TDS RO", data: roTds, backgroundColor: "#0d4f4f" }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: "bottom" } },
+      scales: { x: { ticks: { autoSkip: false, font: { size: 9 } } } }
+    }
+  });
+
+  const bactOk = rows.filter(r => r.rec && (r.rec.tapWater.bact === "سليم") && (!r.rec.ro.bact || r.rec.ro.bact === "سليم")).length;
+  const bactBad = rows.filter(r => r.rec && (r.rec.tapWater.bact === "ملوث" || r.rec.ro.bact === "ملوث")).length;
+  const bactNone = 16 - bactOk - bactBad;
+
+  const ctx2 = document.getElementById("bactChart").getContext("2d");
+  if (bactChartInstance) bactChartInstance.destroy();
+  bactChartInstance = new Chart(ctx2, {
+    type: "doughnut",
+    data: {
+      labels: ["سليم", "ملوث", "بلا بيانات"],
+      datasets: [{ data: [bactOk, bactBad, bactNone], backgroundColor: ["#2e8b57", "#b3452f", "#dbe6e4"] }]
+    },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+}
+
+/* ---------- 10) نافذة تفاصيل مستشفى ---------- */
+function openDetail(key) {
+  getAllRecords((all) => {
+    const idx = Number(key.replace("h", ""));
+    const name = HOSPITALS[idx];
+    const rec = all[key];
+    document.getElementById("detailTitle").textContent = name;
+    const body = document.getElementById("detailBody");
+    if (!rec) { body.innerHTML = `<div class="alert-empty">لا توجد بيانات مدخلة لهذا المستشفى بعد</div>`; }
+    else {
+      const tw = rec.tapWater || {}, ro = rec.ro || {};
+      const rowsHtml = (title, obj, labels) => `
+        <h3 style="color:var(--deep-teal);margin:16px 0 8px;font-size:14px;">${title}</h3>
+        ${Object.keys(labels).map(k => `<div class="data-row"><span class="k">${labels[k]}</span><span class="v">${obj[k] || "—"}</span></div>`).join("")}
+      `;
+      body.innerHTML =
+        rowsHtml("أولاً: منظومة ماء الإسالة", tw, {
+          source: "مصدر التجهيز", dailyHours: "ساعات التجهيز اليومي", tanks: "الخزانات وسعتها",
+          lastCleaning: "آخر تنظيف الخزانات", bact: "الفحص البكتيري", chem: "الفحص الكيميائي", tds: "TDS",
+          network: "حالة الشبكة", obstacles: "المعوقات", needUrgent: "احتياجات عاجلة", needPlan: "ضمن الخطة السنوية",
+          finUrgent: "مالية عاجلة", finPlan: "مالية ضمن الخطة"
+        }) +
+        rowsHtml("ثانياً: منظومات RO", ro, {
+          count: "عدد المنظومات", year: "سنة التصنيع", capacity: "الطاقة الإنتاجية", maker: "الشركة المصنعة",
+          stopped: "منظومات متوقفة", orCount: "صالات العمليات", orServed: "الصالات المخدومة",
+          lastMaint: "آخر صيانة", lastFilter: "آخر تبديل فلاتر", lastMembrane: "آخر تبديل أغشية",
+          bact: "الفحص البكتيري", chem: "الفحص الكيميائي", tds: "TDS", efficiency: "كفاءة المنظومة",
+          faults: "الأعطال الحالية", techUrgent: "فنية عاجلة", techPlan: "فنية ضمن الخطة",
+          finUrgent: "مالية عاجلة", finPlan: "مالية ضمن الخطة"
+        }) +
+        renderAttachmentsBlock(rec.attachments);
+    }
+    document.getElementById("detailOverlay").classList.remove("hidden");
+  });
+}
+
+function renderAttachmentsBlock(attachments) {
+  const cats = [
+    { key: "tankPhotos", label: "صور منظومة الإسالة والخزانات" },
+    { key: "roPhotos", label: "صور منظومات RO" },
+    { key: "maintReports", label: "تقارير الصيانة الفنية" },
+    { key: "labReports", label: "التقارير المختبرية" }
+  ];
+  const att = attachments || {};
+  const hasAny = cats.some(c => (att[c.key] || []).length > 0);
+  if (!hasAny) return `<h3 style="color:var(--deep-teal);margin:16px 0 8px;font-size:14px;">📎 المرفقات</h3><div class="alert-empty">لا توجد مرفقات مرفوعة</div>`;
+  return `<h3 style="color:var(--deep-teal);margin:16px 0 8px;font-size:14px;">📎 المرفقات</h3>` +
+    cats.map(c => {
+      const items = att[c.key] || [];
+      if (items.length === 0) return "";
+      return `<div style="margin-bottom:10px;"><div style="font-size:12.5px;font-weight:700;color:var(--teal);margin-bottom:6px;">${c.label}</div>` +
+        `<div class="attach-list">` +
+        items.map(it => `<div class="attach-chip"><a href="${it.url}" target="_blank" rel="noopener">📄 ${it.name}</a></div>`).join("") +
+        `</div></div>`;
+    }).join("");
+}
+function closeDetail() { document.getElementById("detailOverlay").classList.add("hidden"); }
+
+/* ---------- تهيئة أولية ---------- */
+switchLoginTab("hospital");
+
+</script>
+</body>
+</html>
